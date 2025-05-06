@@ -1,0 +1,22 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  touch-action: none;
+  -webkit-user-select: none;
+}
+canvas {
+  display: block;
+}
+button:hover {
+  background-color: #2D803D;
+  border: 2px solid #04AA6D;
+}
+button {
+  font-family: monospace;
+  font-size: 1.5rem;
+  color: white;
+  background-color: #386641;
+  border: 2px solid #3A4D3E;
+}
