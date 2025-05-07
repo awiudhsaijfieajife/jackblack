@@ -30,6 +30,7 @@ let gameState = "betting"; // Start with betting (though we won't implement bett
 let boringTurns = 0; // If both players go through their turns standing and not doing anything the game ends
 let message = "Click to start!";
 let targetScore = 21;
+let gameMode;
 
 let isMobile = false;
 let touchX = 0;
@@ -257,7 +258,10 @@ function joinroom() {
         socket.emit("startGame", roomId);
         message = `Game started in room ${roomId}\n`;
         console.log("game started in room", roomId + "\n");
+        console.log(socket.id);
         actionMenuButton.show();
+        gameMode = "multiplayer";
+        newmGame();
       });
     }
   });
@@ -316,6 +320,7 @@ function createroom(){
         message = `Game started in room ${roomId}\n`;
         console.log("game started in room", roomId + "\n");
         actionMenuButton.show();
+        gameMode = "multiplayer";
     });
     socket.on("error", (err) => {  
         console.log(err + "\n");
@@ -371,6 +376,7 @@ function setup() {
         message = "Singleplayer mode selected!";    
         spb.hide(); 
         mpb.hide();
+        gameMode = "singleplayer";
         newGame();
     });
     mpb.size(width / 2, 80);
@@ -421,7 +427,7 @@ function draw() {
   updateTempHints();
 
   // Optional: Game logic checks within draw (can also be purely event-driven)
-  if (gameState === "dealerTurn") {
+  if (gameState === "dealerTurn" && gameMode === "singleplayer") {
     dealerPlay(); // Automatically handle dealer's turn
   }
 }
@@ -885,6 +891,65 @@ function newGame() {
   startRound();
 }
 
+function newmGame() {
+  if (gameState !== "gameOver" && gameState !== "betting") return;
+  buildDeck();
+  shuffleDeck();
+  playerHand = [];
+  dealerHand = [];
+  playerUsedActionCards = [];
+  dealerUsedActionCards = [];
+  targetScore = 21;
+  currentBet = 1; // Always reset bet
+  roundBet = currentBet;
+  playerScore = 0;
+  dealerScore = 0;
+  initialActionCardsDealt = false;
+  playerActionCards = [];
+  dealerActionCards = [];
+  roundHasEnded = false;
+  playerActionCards = [];
+  dealerActionCards = [];
+  roundHasEnded = false;
+  startmRound();
+}
+
+function startmRound() {
+  // Cancel any pending nextRoundTimeout
+  if (nextRoundTimeout) {
+    clearTimeout(nextRoundTimeout);
+    nextRoundTimeout = null;
+  }
+  roundBet = currentBet; // clear any changes to roundBet
+  roundHasEnded = false;
+  gameState = "playerTurn";
+  buildDeck();
+  shuffleDeck();
+  playerHand = [];
+  dealerHand = [];
+  playerUsedActionCards = [];
+  dealerUsedActionCards = [];
+  targetScore = 21;
+  boringTurns = 0;
+  // Only deal 2 action cards at the start of the game
+  if (!initialActionCardsDealt) {
+    dealActionCards(2, "player");
+    dealActionCards(2, "dealer");
+    initialActionCardsDealt = true;
+  }
+  // Deal initial hands
+  dealCard(playerHand);
+  dealCard(dealerHand, true);
+  dealCard(playerHand);
+  dealCard(dealerHand);
+  message = `Your turn: Hit or Stand?`;
+  if (isMobile) {
+    hitButton.show();
+    standButton.show();
+    actionMenuButton.show();
+  }
+}
+
 function startRound() {
   // Cancel any pending nextRoundTimeout
   if (nextRoundTimeout) {
@@ -926,6 +991,7 @@ function playerHit() {
   if (gameState !== "playerTurn") return;
   boringTurns = 0;
   dealCard(playerHand);
+  socket.emit("playerHit", playerHand, socket.id);
   // 25% chance to get an action card, but only after initial 2
   if (Math.random() < 0.4) {
     dealActionCards(1, "player");
